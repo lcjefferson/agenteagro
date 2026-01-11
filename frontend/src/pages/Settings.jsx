@@ -75,7 +75,10 @@ Sempre responda de forma clara e objetiva.`);
       setWhatsappConfig(newConfig);
     } catch (error) {
       console.error("Error fetching configs", error);
-      setError('Erro ao carregar configurações. Verifique a conexão com o backend.');
+      let msg = 'Erro ao carregar configurações.';
+      if (error.message) msg += ` Detalhes: ${error.message}`;
+      if (error.response) msg += ` Status: ${error.response.status}`;
+      setError(msg);
     } finally {
       setLoading(false);
     }

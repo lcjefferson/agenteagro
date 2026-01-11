@@ -2,7 +2,16 @@ import axios from 'axios';
 
 const getBaseUrl = () => {
   let url = import.meta.env.VITE_API_URL;
-  if (!url) return 'http://localhost:8000/api/v1';
+  
+  // Se não houver env var definida
+  if (!url) {
+    // Se estivermos rodando localmente, usa localhost
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      return 'http://localhost:8000/api/v1';
+    }
+    // Se estivermos em produção (Render), tenta usar a URL do backend padrão
+    return 'https://agenteagro-backend.onrender.com/api/v1';
+  }
   
   if (!url.startsWith('http')) {
     url = `https://${url}`;
