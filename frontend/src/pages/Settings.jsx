@@ -1,0 +1,233 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const Settings = () => {
+  const [instructions, setInstructions] = useState(`Você é o AgenteAgro, um assistente especialista em agricultura e pecuária.
+Sua missão é ajudar produtores a identificar pragas, doenças e encontrar profissionais.
+Sempre responda de forma clara e objetiva.`);
+  
+  const [whatsappConfig, setWhatsappConfig] = useState({
+    numberId: '',
+    accessToken: '',
+    verifyToken: 'agenteagro_token'
+  });
+
+  const [openaiApiToken, setOpenaiApiToken] = useState('');
+  
+  const [webhookUrl, setWebhookUrl] = useState('');
+  
+  const [knowledgeSources, setKnowledgeSources] = useState([
+    'EMBRAPA', 'MAPA', 'SciELO', 'PlantVillage'
+  ]);
+  const [newSource, setNewSource] = useState('');
+
+  useEffect(() => {
+    // Determine Webhook URL based on current host as fallback
+    const protocol = window.location.protocol;
+    const host = window.location.hostname;
+    const backendBase = host === 'localhost' ? 'http://localhost:8000' : `${protocol}//${host}/api`;
+    setWebhookUrl(`${backendBase}/api/v1/whatsapp/webhook`);
+
+    // Fetch existing configs
+    fetchConfigs();
+  }, []);
+
+  const fetchConfigs = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/v1/config/');
+      const configs = response.data;
+      const newConfig = { ...whatsappConfig };
+      
+      configs.forEach(cfg => {
+        if (cfg.key === 'whatsapp_number_id') newConfig.numberId = cfg.value;
+        if (cfg.key === 'whatsapp_access_token') newConfig.accessToken = cfg.value;
+        if (cfg.key === 'whatsapp_verify_token') newConfig.verifyToken = cfg.value;
+        if (cfg.key === 'openai_api_key') setOpenaiApiToken(cfg.value);
+        if (cfg.key === 'system_prompt') setInstructions(cfg.value);
+        if (cfg.key === 'webhook_url') setWebhookUrl(cfg.value);
+        if (cfg.key === 'knowledge_sources') {
+          try {
+            setKnowledgeSources(JSON.parse(cfg.value));
+          } catch (e) {
+            console.error("Error parsing knowledge sources", e);
+          }
+        }
+      });
+      
+      setWhatsappConfig(newConfig);
+    } catch (error) {
+      console.error("Error fetching configs", error);
+    }
+  };
+
+  const saveConfig = async (key, value) => {
+    try {
+      await axios.put(`http://localhost:8000/api/v1/config/${key}`, { value });
+    } catch (error) {
+      console.error(`Error saving ${key}`, error);
+    }
+  };
+
+  const handleSaveAll = async () => {
+    await saveConfig('system_prompt', instructions);
+    await saveConfig('whatsapp_number_id', whatsappConfig.numberId);
+    await saveConfig('whatsapp_access_token', whatsappConfig.accessToken);
+    await saveConfig('whatsapp_verify_token', whatsappConfig.verifyToken);
+    await saveConfig('openai_api_key', openaiApiToken);
+    await saveConfig('knowledge_sources', JSON.stringify(knowledgeSources));
+    alert('Configurações salvas com sucesso!');
+  };
+
+  const addSource = () => {
+    if (newSource && !knowledgeSources.includes(newSource)) {
+      setKnowledgeSources([...knowledgeSources, newSource]);
+      setNewSource('');
+    }
+  };
+
+  const removeSource = (source) => {
+    setKnowledgeSources(knowledgeSources.filter(s => s !== source));
+  };
+
+  return (
+    <div className="space-y-6 pb-20 md:pb-0">
+      
+      {/* WhatsApp Configuration */}
+      <div className="bg-white p-4 md:p-6 rounded-lg shadow-md">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <span className="text-green-600">📱</span> Configuração WhatsApp (Meta/UazApi)
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           {/* Webhook URL Display */}
+           <div className="bg-blue-50 p-4 rounded-md border border-blue-200 md:col-span-2">
+            <label className="block text-sm font-medium text-blue-700 mb-1">Seu Webhook URL</label>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 bg-white p-2 rounded border border-blue-200 text-sm font-mono text-gray-700">
+                {webhookUrl}
+              </code>
+              <button 
+                onClick={() => navigator.clipboard.writeText(webhookUrl)}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                Copiar
+              </button>
+            </div>
+            <p className="text-xs text-blue-600 mt-2">
+              Insira esta URL no painel de desenvolvedor do Facebook (Meta) ou na configuração do UazApi.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Number ID</label>
+            <input
+              type="text"
+              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+              placeholder="Ex: 10593..."
+              value={whatsappConfig.numberId}
+              onChange={(e) => setWhatsappConfig({...whatsappConfig, numberId: e.target.value})}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Access Token (Permanente ou Temporário)</label>
+            <input
+              type="password"
+              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+              placeholder="EAAG..."
+              value={whatsappConfig.accessToken}
+              onChange={(e) => setWhatsappConfig({...whatsappConfig, accessToken: e.target.value})}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Verify Token</label>
+            <input
+              type="text"
+              className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+              placeholder="agenteagro_token"
+              value={whatsappConfig.verifyToken}
+              onChange={(e) => setWhatsappConfig({...whatsappConfig, verifyToken: e.target.value})}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Use este mesmo token ao verificar o webhook no painel da Meta.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Prompt Configuration */}
+      <div className="bg-white p-4 md:p-6 rounded-lg shadow-md">
+        <h2 className="text-lg font-semibold mb-4">🧠 Configuração do Agente (IA)</h2>
+        
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-1">OpenAI API Token</label>
+          <input
+            type="password"
+            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+            placeholder="sk-..."
+            value={openaiApiToken}
+            onChange={(e) => setOpenaiApiToken(e.target.value)}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Chave de API da OpenAI (GPT-4/3.5) para processamento de linguagem natural.
+          </p>
+        </div>
+
+        <label className="block text-sm font-medium text-gray-700 mb-2">System Prompt (Instruções Base)</label>
+        <p className="text-sm text-gray-500 mb-2">Edite as instruções base para a IA.</p>
+        <textarea
+          className="w-full h-40 p-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+        />
+      </div>
+
+      {/* Knowledge Sources Configuration */}
+      <div className="bg-white p-4 md:p-6 rounded-lg shadow-md">
+        <h2 className="text-lg font-semibold mb-4">📚 Fontes de Conhecimento</h2>
+        <div className="space-y-2">
+          {knowledgeSources.map((source) => (
+            <div key={source} className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-100">
+              <span className="text-gray-700">{source}</span>
+              <button 
+                onClick={() => removeSource(source)}
+                className="text-red-500 hover:text-red-700 text-sm font-medium px-2 py-1 rounded hover:bg-red-50"
+              >
+                Remover
+              </button>
+            </div>
+          ))}
+          <div className="flex gap-2 mt-4">
+            <input
+              type="text"
+              placeholder="Adicionar nova fonte (ex: Site, Link, Nome)"
+              className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+              value={newSource}
+              onChange={(e) => setNewSource(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && addSource()}
+            />
+            <button 
+              onClick={addSource}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Adicionar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <div className="flex justify-end sticky bottom-6">
+        <button
+          onClick={handleSaveAll}
+          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors shadow-lg font-medium"
+        >
+          Salvar Todas as Configurações
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default Settings;
