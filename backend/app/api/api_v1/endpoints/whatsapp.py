@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.services.whatsapp_service import process_whatsapp_message
+from app.core.config import settings
 import logging
 
 router = APIRouter()
@@ -13,8 +14,8 @@ async def verify_webhook(request: Request):
     Verification endpoint for WhatsApp Webhook.
     """
     params = request.query_params
-    if params.get("hub.mode") == "subscribe" and params.get("hub.verify_token") == "agenteagro_token":
-        return int(params.get("hub.challenge"))
+    if params.get("hub.mode") == "subscribe" and params.get("hub.verify_token") == settings.WHATSAPP_VERIFY_TOKEN:
+        return Response(content=params.get("hub.challenge"), media_type="text/plain")
     raise HTTPException(status_code=403, detail="Invalid verification token")
 
 @router.post("/webhook")

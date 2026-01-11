@@ -23,6 +23,7 @@ class Settings(BaseSettings):
         return v
 
     OPENAI_API_KEY: str = ""
+    WHATSAPP_VERIFY_TOKEN: str = "agenteagro_token"
     
     # AWS S3 / MinIO
     AWS_ACCESS_KEY_ID: str = "minioadmin"
