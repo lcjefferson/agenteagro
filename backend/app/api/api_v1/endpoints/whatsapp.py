@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, Response
+from fastapi import APIRouter, Depends, Request, HTTPException, Response, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.session import get_db
+from app.db.session import get_db, AsyncSessionLocal
 from app.services.whatsapp_service import process_whatsapp_message
 from app.core.config import settings
 import logging
@@ -18,10 +18,20 @@ async def verify_webhook(request: Request):
         return Response(content=params.get("hub.challenge"), media_type="text/plain")
     raise HTTPException(status_code=403, detail="Invalid verification token")
 
-@router.post("/webhook")
-async def receive_message(request: Request, db: AsyncSession = Depends(get_db)):
+async def process_message_background(message_data: dict):
     """
-    Receive messages from WhatsApp.
+    Process message in background with its own DB session.
+    """
+    try:
+        async with AsyncSessionLocal() as db:
+            await process_whatsapp_message(db, message_data)
+    except Exception as e:
+        logger.error(f"Error in background processing: {e}")
+
+@router.post("/webhook")
+async def receive_message(request: Request, background_tasks: BackgroundTasks):
+    """
+    Receive messages from WhatsApp and process in background.
     """
     try:
         data = await request.json()
@@ -36,7 +46,8 @@ async def receive_message(request: Request, db: AsyncSession = Depends(get_db)):
                 messages = value.get("messages", [])
                 if messages:
                     for msg in messages:
-                        await process_whatsapp_message(db, msg)
+                        # Add to background tasks to avoid timeout
+                        background_tasks.add_task(process_message_background, msg)
         
         return {"status": "ok"}
     except Exception as e:
