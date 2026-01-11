@@ -13,9 +13,21 @@ const getBaseUrl = () => {
     return 'https://agenteagro-backend.onrender.com/api/v1';
   }
   
+  // Se a URL não tiver protocolo
   if (!url.startsWith('http')) {
+    // Se a URL não terminar com .onrender.com (Render), adiciona
+    if (!url.includes('.') && !url.includes('localhost')) {
+       url = `${url}.onrender.com`;
+    }
     url = `https://${url}`;
   }
+  
+  // Se a URL já tiver protocolo mas não o domínio completo (caso raro, mas possível no Render internal DNS)
+  // No Render, internal DNS é apenas o nome do serviço (ex: agenteagro-backend), mas para acesso externo/client-side precisa do .onrender.com
+  if (url.startsWith('https://') && !url.includes('.') && !url.includes('localhost')) {
+      url = `${url}.onrender.com`;
+  }
+  
   return `${url}/api/v1`;
 }
 
