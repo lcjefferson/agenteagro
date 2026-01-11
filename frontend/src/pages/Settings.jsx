@@ -21,11 +21,14 @@ Sempre responda de forma clara e objetiva.`);
   ]);
   const [newSource, setNewSource] = useState('');
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [debugUrl, setDebugUrl] = useState('');
+
   useEffect(() => {
     // Determine Webhook URL based on current host as fallback
-    // If api.defaults.baseURL is not set (e.g. dev), fallback to window.location logic could be tricky if CORS
-    // But in production (Render), VITE_API_URL should be set.
     let backendBase = api.defaults.baseURL;
+    setDebugUrl(backendBase); // For debugging purposes
     
     if (backendBase) {
       // Remove trailing slash if present
@@ -46,6 +49,8 @@ Sempre responda de forma clara e objetiva.`);
   }, []);
 
   const fetchConfigs = async () => {
+    setLoading(true);
+    setError('');
     try {
       const response = await api.get('/config/');
       const configs = response.data;
@@ -70,25 +75,44 @@ Sempre responda de forma clara e objetiva.`);
       setWhatsappConfig(newConfig);
     } catch (error) {
       console.error("Error fetching configs", error);
+      setError('Erro ao carregar configurações. Verifique a conexão com o backend.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const saveConfig = async (key, value) => {
     try {
       await api.put(`/config/${key}`, { value });
+      return true;
     } catch (error) {
       console.error(`Error saving ${key}`, error);
+      return false;
     }
   };
 
   const handleSaveAll = async () => {
-    await saveConfig('system_prompt', instructions);
-    await saveConfig('whatsapp_number_id', whatsappConfig.numberId);
-    await saveConfig('whatsapp_access_token', whatsappConfig.accessToken);
-    await saveConfig('whatsapp_verify_token', whatsappConfig.verifyToken);
-    await saveConfig('openai_api_key', openaiApiToken);
-    await saveConfig('knowledge_sources', JSON.stringify(knowledgeSources));
-    alert('Configurações salvas com sucesso!');
+    setLoading(true);
+    try {
+      const results = await Promise.all([
+        saveConfig('system_prompt', instructions),
+        saveConfig('whatsapp_number_id', whatsappConfig.numberId),
+        saveConfig('whatsapp_access_token', whatsappConfig.accessToken),
+        saveConfig('whatsapp_verify_token', whatsappConfig.verifyToken),
+        saveConfig('openai_api_key', openaiApiToken),
+        saveConfig('knowledge_sources', JSON.stringify(knowledgeSources))
+      ]);
+
+      if (results.every(r => r)) {
+        alert('Configurações salvas com sucesso!');
+      } else {
+        alert('Algumas configurações não puderam ser salvas. Verifique o console.');
+      }
+    } catch (e) {
+      alert('Erro ao salvar: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addSource = () => {
@@ -230,14 +254,33 @@ Sempre responda de forma clara e objetiva.`);
         </div>
       </div>
 
-      {/* Save Button */}
-      <div className="flex justify-end sticky bottom-6">
+      {/* Save Button & Feedback */}
+      <div className="flex flex-col items-end gap-2 sticky bottom-6 bg-gray-50 p-4 rounded-t-lg md:bg-transparent md:p-0">
+        {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded text-sm mb-2 w-full md:w-auto" role="alert">
+                <strong className="font-bold">Erro: </strong>
+                <span className="block sm:inline">{error}</span>
+            </div>
+        )}
         <button
           onClick={handleSaveAll}
-          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors shadow-lg font-medium"
+          disabled={loading}
+          className={`bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors shadow-lg font-medium flex items-center justify-center gap-2 w-full md:w-auto ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
         >
-          Salvar Todas as Configurações
+          {loading && (
+             <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+             </svg>
+          )}
+          {loading ? 'Salvando...' : 'Salvar Todas as Configurações'}
         </button>
+      </div>
+
+      <div className="text-center text-xs text-gray-400 pb-10 mt-8">
+        <p>Debug Info:</p>
+        <p>API: {debugUrl || 'Detecting...'}</p>
+        <p>Mode: {import.meta.env.VITE_API_URL ? 'Production (Env)' : 'Development (Fallback)'}</p>
       </div>
     </div>
   );
