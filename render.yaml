@@ -18,23 +18,26 @@ services:
       - key: PYTHON_VERSION
         value: 3.9.18
 
-  # Frontend Service moved to staticSites
+  # Frontend Service
+  - type: web
+    name: agenteagro-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: agenteagro-backend
+          property: host
 
 databases:
   - name: agenteagro-db
     databaseName: agenteagro
     user: agenteagro_user
     plan: free # Change to starter or higher for production
-
-staticSites:
-  - name: agenteagro-frontend
-    runtime: static
-    rootDir: frontend
-    buildCommand: "npm install && npm run build"
-    publishDir: dist
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: agenteagro-backend
-          property: url
