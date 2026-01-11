@@ -23,11 +23,23 @@ Sempre responda de forma clara e objetiva.`);
 
   useEffect(() => {
     // Determine Webhook URL based on current host as fallback
-    const protocol = window.location.protocol;
-    const host = window.location.hostname;
-    // Use api.defaults.baseURL to derive the webhook URL
-    const backendBase = api.defaults.baseURL.replace('/api/v1', '');
-    setWebhookUrl(`${backendBase}/api/v1/whatsapp/webhook`);
+    // If api.defaults.baseURL is not set (e.g. dev), fallback to window.location logic could be tricky if CORS
+    // But in production (Render), VITE_API_URL should be set.
+    let backendBase = api.defaults.baseURL;
+    
+    if (backendBase) {
+      // Remove trailing slash if present
+      if (backendBase.endsWith('/')) {
+        backendBase = backendBase.slice(0, -1);
+      }
+      // Remove /api/v1 suffix to get the root
+      backendBase = backendBase.replace('/api/v1', '');
+      
+      setWebhookUrl(`${backendBase}/api/v1/whatsapp/webhook`);
+    } else {
+        // Fallback for development if VITE_API_URL is missing
+        setWebhookUrl('http://localhost:8000/api/v1/whatsapp/webhook');
+    }
 
     // Fetch existing configs
     fetchConfigs();
