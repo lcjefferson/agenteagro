@@ -53,3 +53,4 @@ async def receive_message(request: Request, background_tasks: BackgroundTasks):
     except Exception as e:
         logger.error(f"Error processing webhook: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+# Force update Sun Jan 11 19:51:40 -03 2026
