@@ -1,9 +1,17 @@
 import axios from 'axios';
 
+const getBaseUrl = () => {
+  let url = import.meta.env.VITE_API_URL;
+  if (!url) return 'http://localhost:8000/api/v1';
+  
+  if (!url.startsWith('http')) {
+    url = `https://${url}`;
+  }
+  return `${url}/api/v1`;
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL 
-    ? `${import.meta.env.VITE_API_URL}/api/v1` 
-    : 'http://localhost:8000/api/v1',
+  baseURL: getBaseUrl(),
 });
 
 export const dashboardService = {
