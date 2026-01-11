@@ -325,3 +325,4 @@ async def process_whatsapp_message(db: AsyncSession, message_data: dict):
 
     except Exception as e:
         logger.error(f"Error processing message: {e}")
+# Force update Sun Jan 11 19:50:16 -03 2026
