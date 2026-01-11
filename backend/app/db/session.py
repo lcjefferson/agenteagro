@@ -1,6 +1,11 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
+import re
+
+# Mask password for logging
+safe_url = re.sub(r':([^@]+)@', ':****@', settings.DATABASE_URL)
+print(f"DEBUG: DATABASE_URL is {safe_url}")
 
 engine = create_async_engine(settings.DATABASE_URL, echo=True)
 
