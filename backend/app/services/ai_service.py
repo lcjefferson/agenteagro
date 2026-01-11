@@ -28,7 +28,7 @@ async def analyze_text(text: str, context: str = "", api_key: str = None) -> str
         print(f"Error calling OpenAI: {e}")
         return "Desculpe, estou com dificuldades para processar sua mensagem no momento."
 
-async def analyze_image(base64_image: str, api_key: str = None) -> str:
+async def analyze_image(base64_image: str, context: str = "", api_key: str = None) -> str:
     """
     Analyze image using OpenAI Vision.
     """
@@ -40,13 +40,17 @@ async def analyze_image(base64_image: str, api_key: str = None) -> str:
     try:
         local_client = AsyncOpenAI(api_key=current_api_key)
         
+        system_instruction = "Você é um especialista agrícola. Analise esta imagem detalhadamente. Se for uma planta ou animal, identifique possíveis doenças, pragas ou problemas nutricionais. Se for um documento, transcreva e resuma o conteúdo."
+        if context:
+            system_instruction += f" {context}"
+
         response = await local_client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "Você é um especialista agrícola. Analise esta imagem detalhadamente. Se for uma planta ou animal, identifique possíveis doenças, pragas ou problemas nutricionais. Se for um documento, transcreva e resuma o conteúdo."},
+                        {"type": "text", "text": system_instruction},
                         {
                             "type": "image_url",
                             "image_url": {

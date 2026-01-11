@@ -255,6 +255,19 @@ async def process_whatsapp_message(db: AsyncSession, message_data: dict):
         response_text = ""
         openai_key = await get_system_config(db, "openai_api_key")
         whatsapp_token = await get_system_config(db, "whatsapp_access_token")
+        
+        # Load Knowledge Sources
+        knowledge_sources_json = await get_system_config(db, "knowledge_sources")
+        sources_context = ""
+        if knowledge_sources_json:
+            try:
+                import json
+                sources_list = json.loads(knowledge_sources_json)
+                if isinstance(sources_list, list) and sources_list:
+                    sources_context = "\n\nFONTES DE CONHECIMENTO RECOMENDADAS: Baseie suas respostas técnicas nestas fontes confiáveis: " + ", ".join(sources_list)
+            except:
+                # If not JSON, use raw text
+                sources_context = f"\n\nFONTES DE CONHECIMENTO RECOMENDADAS: {knowledge_sources_json}"
 
         # Try to extract state/category from any available text
         text_to_analyze = msg_body
@@ -266,7 +279,7 @@ async def process_whatsapp_message(db: AsyncSession, message_data: dict):
 
         if msg_type == "text":
             # 2. Check for professionals if state is known or implied
-            context_info = ""
+            context_info = sources_context # Start with sources
             if "contato" in msg_body.lower() or "ajuda" in msg_body.lower() or "preciso" in msg_body.lower() or "procurar" in msg_body.lower():
                 professionals = await get_relevant_professionals(db, conversation.location_state, msg_body)
                 if professionals:
@@ -287,7 +300,11 @@ async def process_whatsapp_message(db: AsyncSession, message_data: dict):
                     # Pass caption as context if available (not currently supported in analyze_image but logic is self-contained there for now)
                     # Actually analyze_image takes base64. We can update prompt inside analyze_image or just use generic one.
                     # For better UX, let's just call analyze_image.
-                    response_text = await analyze_image(b64_img, api_key=openai_key)
+                    image_context = sources_context
+                    if caption:
+                        image_context += f"\nLegenda do usuário: {caption}"
+                    
+                    response_text = await analyze_image(b64_img, context=image_context, api_key=openai_key)
                 else:
                     response_text = "Não consegui baixar a imagem do WhatsApp."
 
@@ -316,7 +333,7 @@ async def process_whatsapp_message(db: AsyncSession, message_data: dict):
                     if caption:
                         prompt += f"\n\nLegenda/Instrução do usuário: {caption}"
                     
-                    response_text = await analyze_text(prompt, api_key=openai_key)
+                    response_text = await analyze_text(prompt, context=sources_context, api_key=openai_key)
                 else:
                     response_text = "Não consegui baixar o documento."
 
