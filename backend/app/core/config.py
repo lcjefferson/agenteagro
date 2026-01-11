@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     OPENAI_API_KEY: str = ""
     WHATSAPP_VERIFY_TOKEN: str = "agenteagro_token"
+    WHATSAPP_ACCESS_TOKEN: Optional[str] = None
+    WHATSAPP_NUMBER_ID: Optional[str] = None
     
     # AWS S3 / MinIO
     AWS_ACCESS_KEY_ID: str = "minioadmin"

@@ -15,6 +15,10 @@ services:
         generateValue: true
       - key: OPENAI_API_KEY
         sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_NUMBER_ID
+        sync: false
       - key: WHATSAPP_VERIFY_TOKEN
         value: agenteagro_token
       - key: PYTHON_VERSION

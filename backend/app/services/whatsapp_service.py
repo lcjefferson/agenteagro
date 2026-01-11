@@ -17,7 +17,20 @@ logger = logging.getLogger(__name__)
 async def get_system_config(db: AsyncSession, key: str):
     result = await db.execute(select(SystemConfig).filter(SystemConfig.key == key))
     config = result.scalars().first()
-    return config.value if config else None
+    
+    if config and config.value:
+        return config.value
+        
+    # Fallback to Environment Variables
+    from app.core.config import settings
+    if key == "whatsapp_access_token":
+        return settings.WHATSAPP_ACCESS_TOKEN
+    if key == "whatsapp_number_id":
+        return settings.WHATSAPP_NUMBER_ID
+    if key == "openai_api_key":
+        return settings.OPENAI_API_KEY
+        
+    return None
 
 async def download_media(media_id: str, access_token: str) -> bytes:
     """Download media from WhatsApp API"""
