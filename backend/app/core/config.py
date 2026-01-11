@@ -14,8 +14,12 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL")
     @classmethod
     def assemble_db_connection(cls, v: Optional[str]) -> str:
-        if v and v.startswith("postgres://"):
+        if not v:
+            return v
+        if v.startswith("postgres://"):
             return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        if v.startswith("postgresql://") and "asyncpg" not in v:
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
         return v
 
     OPENAI_API_KEY: str = ""
