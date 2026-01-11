@@ -75,7 +75,8 @@ async def send_whatsapp_message(db: AsyncSession, to: str, text: str):
             logger.error("WhatsApp credentials not found in database.")
             return
 
-        url = f"https://graph.facebook.com/v17.0/{number_id}/messages"
+        # Use v19.0 as it is more recent, or stick to v17.0 but ensure it's valid
+        url = f"https://graph.facebook.com/v19.0/{number_id}/messages"
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -87,12 +88,14 @@ async def send_whatsapp_message(db: AsyncSession, to: str, text: str):
             "text": {"body": text}
         }
         
+        logger.info(f"Sending message to {to} using number_id {number_id}")
+        
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=payload, headers=headers)
-            if response.status_code != 200:
-                logger.error(f"WhatsApp API Error: {response.text}")
+            if response.status_code not in [200, 201]:
+                logger.error(f"WhatsApp API Error ({response.status_code}): {response.text}")
             else:
-                logger.info(f"Message sent to {to}")
+                logger.info(f"Message sent to {to} successfully: {response.json()}")
                 
     except Exception as e:
         logger.error(f"Error sending WhatsApp message: {e}")
