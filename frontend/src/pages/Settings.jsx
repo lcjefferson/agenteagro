@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 const Settings = () => {
   const [instructions, setInstructions] = useState(`Você é o AgenteAgro, um assistente especialista em agricultura e pecuária.
@@ -25,7 +25,8 @@ Sempre responda de forma clara e objetiva.`);
     // Determine Webhook URL based on current host as fallback
     const protocol = window.location.protocol;
     const host = window.location.hostname;
-    const backendBase = host === 'localhost' ? 'http://localhost:8000' : `${protocol}//${host}/api`;
+    // Use api.defaults.baseURL to derive the webhook URL
+    const backendBase = api.defaults.baseURL.replace('/api/v1', '');
     setWebhookUrl(`${backendBase}/api/v1/whatsapp/webhook`);
 
     // Fetch existing configs
@@ -34,7 +35,7 @@ Sempre responda de forma clara e objetiva.`);
 
   const fetchConfigs = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/v1/config/');
+      const response = await api.get('/config/');
       const configs = response.data;
       const newConfig = { ...whatsappConfig };
       
@@ -62,7 +63,7 @@ Sempre responda de forma clara e objetiva.`);
 
   const saveConfig = async (key, value) => {
     try {
-      await axios.put(`http://localhost:8000/api/v1/config/${key}`, { value });
+      await api.put(`/config/${key}`, { value });
     } catch (error) {
       console.error(`Error saving ${key}`, error);
     }
