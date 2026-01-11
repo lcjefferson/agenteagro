@@ -256,7 +256,7 @@ async def process_whatsapp_message(db: AsyncSession, message_data: dict):
         openai_key = await get_system_config(db, "openai_api_key")
         whatsapp_token = await get_system_config(db, "whatsapp_access_token")
         
-        # Load Knowledge Sources
+        # Load Knowledge Sources (Updated)
         knowledge_sources_json = await get_system_config(db, "knowledge_sources")
         sources_context = ""
         if knowledge_sources_json:
